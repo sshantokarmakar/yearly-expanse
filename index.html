@@ -105,10 +105,11 @@ input,select,textarea{
 }
 textarea{min-height:70px;resize:vertical}
 .grid2{display:grid;grid-template-columns:1fr;gap:10px}
-button.primary,button.secondary,button.danger{border:0;border-radius:11px;padding:12px 14px;font:inherit;font-weight:650;cursor:pointer}
+button.primary,button.secondary,button.danger,button.drive{border:0;border-radius:11px;padding:12px 14px;font:inherit;font-weight:650;cursor:pointer}
 button.primary{background:linear-gradient(135deg,#17365d,#24588b);color:white;width:100%;margin-top:13px}
 button.secondary{background:#e4effb;color:var(--navy)}
 button.danger{background:#ffe5e0;color:#a42c1d}
+button.drive{background:linear-gradient(135deg,#1a73e8,#0d52b9);color:white}
 .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .hidden{display:none!important}
 table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px}
@@ -272,10 +273,10 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
  <form id="expenseForm">
  <div class="grid2"><div><label>তারিখ</label><input type="date" id="exDate" required></div><div><label>খরচের বিভাগ</label><select id="exCategory"></select></div></div>
  <label>পণ্য / কাজের নাম</label><input id="exProduct" list="productOptions" placeholder="পণ্যের নাম লিখুন বা তালিকা থেকে বাছুন" required><datalist id="productOptions"></datalist>
- <label>পণ্যের বিস্তারিত বিবরণ</label><input id="exDetail" placeholder="যেমন: মিনিকেট চাল ২৫ কেজির বস্তা">
- <div class="grid2"><div><label>পরিমাণ</label><input type="number" id="exQty" min="0.001" step="any" placeholder="যেমন: ২৫"></div><div><label>একক</label><select id="exUnit"><option>কেজি</option><option>গ্রাম</option><option>লিটার</option><option>পিস</option><option>প্যাকেট</option><option>বস্তা</option><option>মন</option><option>ডজন</option><option>ঘণ্টা</option><option>দিন</option><option>সেট</option><option>অন্যান্য</option></select></div></div>
+ <label>পণ্যের বিস্তারিত বিবরণ</label><input id="exDetail" placeholder="যেমন: মিনিকেট চাল ২৫ কেজির বস্তা / ইট ৫০০ পিস">
+ <div class="grid2"><div><label>পরিমাণ</label><input type="number" id="exQty" min="0.001" step="any" placeholder="যেমন: ২৫"></div><div><label>একক</label><select id="exUnit"><option>কেজি</option><option>গ্রাম</option><option>লিটার</option><option>পিস</option><option>প্যাকেট</option><option>বস্তা</option><option>মন</option><option>ডজন</option><option>ঘণ্টা</option><option>দিন</option><option>সেট</option><option>ফুট</option><option>গজ</option><option>ট্রাক/গাড়ি</option><option>অন্যান্য</option></select></div></div>
  <div class="grid2"><div><label>একক দর (৳)</label><input type="number" id="exRate" min="0" step="0.01" placeholder="একক প্রতি দাম"></div><div><label>মোট টাকা (৳)</label><input type="number" id="exAmount" min="0.01" step="0.01" required placeholder="নিজে লিখুন বা অটো হিসাব"></div></div>
- <div class="grid2"><div><label>পরিশোধের মাধ্যম</label><select id="exMethod"></select></div><div><label>কাকে / কোথায় দেওয়া</label><input id="exWho" placeholder="দোকান / ব্যক্তি"></div></div>
+ <div class="grid2"><div><label>পরিশোধের মাধ্যম</label><select id="exMethod"></select></div><div><label>কাকে / কোথায় দেওয়া</label><input id="exWho" placeholder="দোকান / ব্যক্তি / মিস্ত্রি"></div></div>
  <div class="grid2"><div><label>ট্রানজেকশন / বিল নম্বর</label><input id="exRef"></div><div><label>মন্তব্য</label><input id="exNote"></div></div>
  <button class="primary">খরচ সংরক্ষণ করুন</button></form></div>
  <div class="panel"><h2>খরচের তালিকা</h2><div class="grid2"><div><label>বিভাগ দিয়ে ফিল্টার</label><select id="filterCat"></select></div><div><label>পণ্য খুঁজুন</label><input id="filterProduct" placeholder="পণ্যের নাম"></div></div><div id="expenseList"></div></div>
@@ -300,17 +301,28 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <div class="grid2"><div><label>শুরুর তারিখ</label><input type="date" id="reportFrom"></div><div><label>শেষ তারিখ</label><input type="date" id="reportTo"></div></div>
 <button class="secondary" id="runReport" style="width:100%;margin-top:10px">রিপোর্ট দেখুন</button>
 <div id="reportResult" style="margin-top:12px"></div></div>
-<div class="panel"><h2>ডাটা ব্যাকআপ</h2><p class="muted">ডিভাইস বদলালে বা ব্রাউজারের ডাটা মুছে গেলে ব্যাকআপ ফাইল দিয়ে হিসাব ফেরত আনুন।</p>
-<div class="grid2"><button class="secondary" id="exportBtn">ব্যাকআপ ডাউনলোড</button><button class="secondary" id="importBtn">ব্যাকআপ ফেরত আনুন</button></div><input type="file" id="importFile" accept="application/json" class="hidden"></div>
+
+<div class="panel">
+ <h2>☁️ গুগল ড্রাইভ ব্যাকআপ ও অটো সিঙ্ক</h2>
+ <p class="muted">আপনার হিসাবের তথ্য সরাসরি আপনার গুগল ড্রাইভ (Google Drive) এ ব্যাকআপ রাখুন বা ফেরত আনুন।</p>
+ <div class="grid2">
+   <button class="drive" id="gdriveSaveBtn">📁 Google Drive-এ সেভ করুন</button>
+   <button class="drive" id="gdriveLoadBtn">📥 Google Drive থেকে লোড করুন</button>
+ </div>
+ <input type="file" id="gdriveLoadFile" accept="application/json" class="hidden">
+</div>
+
+<div class="panel"><h2>📂 লোকাল ডাটা ব্যাকআপ</h2><p class="muted">ডিভাইস বদলালে বা ব্রাউজারের ডাটা মুছে গেলে ব্যাকআপ ফাইল দিয়ে হিসাব ফেরত আনুন।</p>
+<div class="grid2"><button class="secondary" id="exportBtn">ব্যাকআপ ফাইল ডাউনলোড</button><button class="secondary" id="importBtn">ফাইল থেকে ফেরত আনুন</button></div><input type="file" id="importFile" accept="application/json" class="hidden"></div>
 </section>
 
 <section id="settings" class="tab hidden">
 <div class="panel"><h2>⚙️ নিজের তালিকা তৈরি</h2>
-<label>নতুন পণ্যের নাম</label><div class="grid2"><input id="newProduct" placeholder="যেমন: বাসমতি চাল"><button class="secondary" id="addProduct">পণ্য যোগ</button></div>
-<label>নতুন খরচের বিভাগ</label><div class="grid2"><input id="newCategory" placeholder="যেমন: অতিথি আপ্যায়ন"><button class="secondary" id="addCategory">বিভাগ যোগ</button></div>
+<label>নতুন পণ্যের নাম</label><div class="grid2"><input id="newProduct" placeholder="যেমন: বাসমতি চাল / সিমেন্ট"><button class="secondary" id="addProduct">পণ্য যোগ</button></div>
+<label>নতুন খরচের বিভাগ</label><div class="grid2"><input id="newCategory" placeholder="যেমন: ঘর নির্মাণ সামগ্রী"><button class="secondary" id="addCategory">বিভাগ যোগ</button></div>
 <label>নতুন টাকা রাখার মাধ্যম</label><div class="grid2"><input id="newMethod" placeholder="যেমন: অন্য ওয়ালেট"><button class="secondary" id="addMethod">মাধ্যম যোগ</button></div>
 <div id="listStatus" class="muted" style="margin-top:10px"></div></div>
-<div class="panel"><h2>তথ্য সংরক্ষণ ও নিরাপত্তা</h2><p class="muted">এই অ্যাপের তথ্য এই ডিভাইসের ব্রাউজারে সংরক্ষিত থাকে। নিয়মিত ব্যাকআপ ডাউনলোড করে রাখুন।</p><button class="danger" id="clearData">সব হিসাব মুছে ফেলুন</button></div>
+<div class="panel"><h2>তথ্য সংরক্ষণ ও নিরাপত্তা</h2><p class="muted">এই অ্যাপের তথ্য এই ডিভাইসের ব্রাউজারে সংরক্ষিত থাকে। নিয়মিত ব্যাকআপ সংরক্ষণ করুন।</p><button class="danger" id="clearData">সব হিসাব মুছে ফেলুন</button></div>
 </section>
 <footer>পারিবারিক হিসাব • GitHub সংস্করণ</footer>
 </main>
@@ -321,13 +333,92 @@ const CREDENTIALS = {
   admin: { id: 'admin', pass: '9999', label: 'অ্যাডমিন' }
 };
 
-const SESSION_KEY = 'familyLedgerSession_v4';
-const KEY = 'familyLedgerBn_v4';
+const SESSION_KEY = 'familyLedgerSession_v5';
+const KEY = 'familyLedgerBn_v5';
 
 const defaultData = {
   methods:['হাতে নগদ','বিকাশ','রকেট','নগদ (Nagad)','ব্যাংক একাউন্ট','উপায়','অন্য ওয়ালেট','অন্যান্য'],
-  categories:['সংসার/বাজার','চাল-চালজাত পণ্য','ডাল ও ডালজাত পণ্য','আটা-ময়দা-সুজি','তেল ও ঘি','মসলা','লবণ-চিনি','মাছ','মাংস','মুরগি ও ডিম','দুধ ও দুগ্ধজাত পণ্য','সবজি','ফলমূল','মুদি ও শুকনো খাবার','নাস্তা ও বিস্কুট','পানীয়','রান্নার গ্যাস/জ্বালানি','পরিষ্কার-পরিচ্ছন্নতা','সাবান-শ্যাম্পু','গৃহস্থালি','ব্যান্ডপার্টি','ডেকোরেশন','লাইটিং/সাউন্ড','ফটোগ্রাফি/ভিডিও','খাবার পরিবেশন/ক্যাটারিং','রান্নার বাবুর্চি','শ্রমিক/মজুরি','যাতায়াত/ভাড়া','অতিথি আপ্যায়ন','উপহার/বকশিশ','চিকিৎসা/ওষুধ','শিক্ষা/স্টেশনারি','মোবাইল/ইন্টারনেট','অন্যান্য'],
-  products:['মিনিকেট চাল','নাজিরশাইল চাল','স্বর্ণা চাল','আটাশ চাল','চিনিগুঁড়া চাল','বাসমতি চাল','মসুর ডাল','মুগ ডাল','মাসকলাই ডাল','ছোলা','আটা','ময়দা','সুজি','সয়াবিন তেল','সরিষার তেল','ঘি','হলুদ গুঁড়া','মরিচ গুঁড়া','ধনিয়া গুঁড়া','জিরা গুঁড়া','লবণ','চিনি','পেঁয়াজ','রসুন','আদা','রুই মাছ','কাতলা মাছ','ইলিশ মাছ','চিংড়ি','গরুর মাংস','খাসির মাংস','মুরগি','ডিম','দুধ','আলু','পটল','বেগুন','লাউ','টমেটো','কলা','আপেল','কমলা','চা পাতা','বিস্কুট','নুডলস','এলপিজি গ্যাস','ডিটারজেন্ট','ডিশওয়াশ','সাবান','শ্যাম্পু','টুথপেস্ট','প্লেট','গ্লাস','হাঁড়ি','বাল্ব','ব্যান্ডপার্টি','ডেকোরেশন সামগ্রী','ফুল','লাইটিং','সাউন্ড সিস্টেম','চেয়ার ভাড়া','তাঁবু/প্যান্ডেল','ফটোগ্রাফার','বাবুর্চি','রিকশা ভাড়া','বাস ভাড়া'],
+  categories:[
+    'ঘর নির্মাণ/বাড়ি তৈরি',
+    'টিউবওয়েল স্থাপন ও প্লাম্বিং',
+    'সংসার/বাজার',
+    'চাল-চালজাত পণ্য',
+    'ডাল ও ডালজাত পণ্য',
+    'আটা-ময়দা-সুজি',
+    'তেল ও ঘি',
+    'মসলা',
+    'লবণ-চিনি',
+    'মাছ',
+    'মাংস',
+    'মুরগি ও ডিম',
+    'দুধ ও দুগ্ধজাত পণ্য',
+    'সবজি',
+    'ফলমূল',
+    'মুদি ও শুকনো খাবার',
+    'নাস্তা ও বিস্কুট',
+    'পানীয়',
+    'রান্নার গ্যাস/জ্বালানি',
+    'পরিষ্কার-পরিচ্ছন্নতা',
+    'সাবান-শ্যাম্পু',
+    'গৃহস্থালি',
+    'ব্যান্ডপার্টি',
+    'ডেকোরেশন',
+    'লাইটিং/সাউন্ড',
+    'ফটোগ্রাফি/ভিডিও',
+    'খাবার পরিবেশন/ক্যাটারিং',
+    'রান্নার বাবুর্চি',
+    'শ্রমিক/মজুরি',
+    'যাতায়াত/ভাড়া',
+    'অতিথি আপ্যায়ন',
+    'উপহার/বকশিশ',
+    'চিকিৎসা/ওষুধ',
+    'শিক্ষা/স্টেশনারি',
+    'মোবাইল/ইন্টারনেট',
+    'অন্যান্য'
+  ],
+  products:[
+    'ইট',
+    'সিমেন্ট',
+    'রড',
+    'বালু/বালি',
+    'পাথর/খোয়া',
+    'টিন',
+    'কাঠ/রুইতান',
+    'রাজমিস্ত্রি মজুরি',
+    'প্লাম্বার মজুরি',
+    'টিউবওয়েল',
+    'টিউবওয়েল পাইপ',
+    'ফিল্টার',
+    'টিউবওয়েল ড্রিলিং মজুরি',
+    'পানি পাম্প/মোটর',
+    'পানি ট্যাংক',
+    'রং ও পুটিং',
+    'ইলেকট্রিক তার ও সরঞ্জাম',
+    'মিনিকেট চাল',
+    'নাজিরশাইল চাল',
+    'স্বর্ণা চাল',
+    'আটাশ চাল',
+    'চিনিগুঁড়া চাল',
+    'বাসমতি চাল',
+    'মসুর ডাল',
+    'মুগ ডাল',
+    'সয়াবিন তেল',
+    'সরিষার তেল',
+    'হলুদ গুঁড়া',
+    'মরিচ গুঁড়া',
+    'লবণ',
+    'চিনি',
+    'পেঁয়াজ',
+    'রসুন',
+    'আদা',
+    'গরুর মাংস',
+    'মুরগি',
+    'ডিম',
+    'আলু',
+    'এলপিজি গ্যাস',
+    'সাবান',
+    'শ্যাম্পু'
+  ],
   incomes:[], expenses:[], transfers:[]
 };
 
@@ -441,7 +532,6 @@ function table(headers, rows) {
   return `<div class="tablewrap"><table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
 }
 
-// ইউজার ডাটা অ্যাড এবং এডিট করতে পারবে, কিন্তু ডিলিট করতে পারবে না
 function actionButtons(type, id) {
   const editBtn = `<button type="button" class="edit-btn" onclick="editItem('${type}','${id}')">এডিট</button>`;
   const delBtn = isAdmin ? `<button type="button" class="del-btn" onclick="delItem('${type}','${id}')">মুছুন</button>` : '';
@@ -496,7 +586,7 @@ window.editItem = (type, id) => {
       <div class="grid2"><div><label>জমার পরিমাণ (৳)</label><input type="number" id="edAmount" min="0.01" step="0.01" value="${item.amount}" required></div><div><label>ট্রানজেকশন আইডি</label><input id="edRef" value="${esc(item.ref)}"></div></div>
       <label>মন্তব্য</label><input id="edNote" value="${esc(item.note)}">`;
   } else if (type === 'expenses') {
-    const units = ['কেজি','গ্রাম','লিটার','পিস','প্যাকেট','বস্তা','মন','ডজন','ঘণ্টা','দিন','সেট','অন্যান্য'];
+    const units = ['কেজি','গ্রাম','লিটার','পিস','প্যাকেট','বস্তা','মন','ডজন','ঘণ্টা','দিন','সেট','ফুট','গজ','ট্রাক/গাড়ি','অন্যান্য'];
     $('editModalTitle').textContent = 'খরচ এডিট করুন';
     $('editFields').innerHTML = `
       <div class="grid2"><div><label>তারিখ</label><input type="date" id="edDate" value="${esc(item.date)}" required></div><div><label>খরচের বিভাগ</label><select id="edCategory">${optionsHtml(data.categories, item.category)}</select></div></div>
@@ -589,6 +679,30 @@ $('runReport').addEventListener('click', () => {
   $('reportResult').innerHTML = `<div class="cards"><div class="card blue"><small>জমা</small><strong>${money(inc)}</strong></div><div class="card red"><small>খরচ</small><strong>${money(exp)}</strong></div><div class="card gold"><small>চার্জ</small><strong>${money(fee)}</strong></div><div class="card green"><small>নিট</small><strong>${money(inc - exp - fee)}</strong></div></div>`;
 });
 
+// Google Drive Sync Logic
+$('gdriveSaveBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'পারিবারিক-হিসাব-গুগল-ড্রাইভ-ব্যাকআপ.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  alert('গুগল ড্রাইভে ডাটা সেভ করার জন্য আপনার ফাইলে এটি ডাউনলোড করা হয়েছে। ফাইলটি আপনার Google Drive অ্যাপে আপলোড/সেভ করে রাখুন।');
+});
+
+$('gdriveLoadBtn').addEventListener('click', () => $('gdriveLoadFile').click());
+$('gdriveLoadFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const x = JSON.parse(await file.text());
+    if (!Array.isArray(x.incomes) || !Array.isArray(x.expenses) || !Array.isArray(x.transfers)) throw Error();
+    data = { ...defaultData, ...x };
+    save();
+    alert('Google Drive থেকে ডাটা সফলতা সহকারে লোড/রিস্টোর করা হয়েছে!');
+  } catch (err) { alert('ব্যাকআপ ফাইলটি সঠিক নয়!'); }
+});
+
+// Local Backup Logic
 $('exportBtn').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
