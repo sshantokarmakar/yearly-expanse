@@ -327,11 +327,25 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 </section>
 
 <section id="settings" class="tab hidden">
+<div class="panel">
+  <h2>🔐 পাসওয়ার্ড / পিন পরিবর্তন করুন</h2>
+  <p class="muted" id="passRoleHint">বর্তমান অ্যাকাউন্টের পিন পরিবর্তন করলে তা Google Drive ব্যাকআপেও সেভ হবে।</p>
+  <form id="changePassForm">
+    <div class="grid2">
+      <div><label>বর্তমান পাসওয়ার্ড/পিন</label><input type="password" id="currPass" placeholder="বর্তমান পিন দিন" required></div>
+      <div><label>নতুন পাসওয়ার্ড/পিন</label><input type="password" id="newPass" placeholder="নতুন পিন দিন" required></div>
+    </div>
+    <button type="submit" class="secondary" style="margin-top:10px">পিন পরিবর্তন করুন</button>
+  </form>
+  <div id="passMsg" class="muted" style="margin-top:8px"></div>
+</div>
+
 <div class="panel"><h2>⚙️ নিজের তালিকা তৈরি</h2>
 <label>নতুন পণ্যের নাম</label><div class="grid2"><input id="newProduct" placeholder="যেমন: বাসমতি চাল / সিমেন্ট"><button class="secondary" id="addProduct" type="button">পণ্য যোগ</button></div>
 <label>নতুন খরচের বিভাগ</label><div class="grid2"><input id="newCategory" placeholder="যেমন: ঘর নির্মাণ সামগ্রী"><button class="secondary" id="addCategory" type="button">বিভাগ যোগ</button></div>
 <label>নতুন টাকা রাখার মাধ্যম</label><div class="grid2"><input id="newMethod" placeholder="যেমন: অন্য ওয়ালেট"><button class="secondary" id="addMethod" type="button">মাধ্যম যোগ</button></div>
 <div id="listStatus" class="muted" style="margin-top:10px"></div></div>
+
 <div class="panel"><h2>তথ্য সংরক্ষণ ও নিরাপত্তা</h2><p class="muted">এই অ্যাপের তথ্য ব্রাউজারে ও সংযুক্ত Google Drive ফাইলে সংরক্ষিত থাকে।</p><button class="danger" id="clearData" type="button">সব হিসাব মুছে ফেলুন</button></div>
 </section>
 <footer>পারিবারিক হিসাব • GitHub ও Google Drive সিঙ্ক</footer>
@@ -340,15 +354,19 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:12px}
 <script>
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-6cXHgu-0fL7FW9ibAotQoKY3_JijaPeD5LQZPYxBWAC4RTtTWgjz_2p4AGfHc6ZBYw/exec";
 
-const CREDENTIALS = {
+const defaultCredentials = {
   user:  { id: 'user',  pass: '1234', label: 'ইউজার' },
   admin: { id: 'admin', pass: '9999', label: 'অ্যাডমিন' }
 };
 
-const SESSION_KEY = 'familyLedgerSession_v7';
-const KEY = 'familyLedgerBn_v7';
+const SESSION_KEY = 'familyLedgerSession_v9';
+const KEY = 'familyLedgerBn_v9';
 
 const defaultData = {
+  creds: {
+    user:  { ...defaultCredentials.user },
+    admin: { ...defaultCredentials.admin }
+  },
   methods:['হাতে নগদ','বিকাশ','রকেট','নগদ (Nagad)','ব্যাংক একাউন্ট','উপায়','অন্য ওয়ালেট','অন্যান্য'],
   categories:[
     'ঘর নির্মাণ/বাড়ি তৈরি',
@@ -409,6 +427,10 @@ let data;
 try {
   const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
   data = {
+    creds: {
+      user:  { ...defaultCredentials.user, ...(saved.creds?.user || {}) },
+      admin: { ...defaultCredentials.admin, ...(saved.creds?.admin || {}) }
+    },
     methods: Array.isArray(saved.methods) && saved.methods.length ? saved.methods : [...defaultData.methods],
     categories: Array.isArray(saved.categories) && saved.categories.length ? saved.categories : [...defaultData.categories],
     products: Array.isArray(saved.products) && saved.products.length ? saved.products : [...defaultData.products],
@@ -418,6 +440,10 @@ try {
   };
 } catch (e) {
   data = {
+    creds: {
+      user:  { ...defaultCredentials.user },
+      admin: { ...defaultCredentials.admin }
+    },
     methods: [...defaultData.methods],
     categories: [...defaultData.categories],
     products: [...defaultData.products],
@@ -445,15 +471,19 @@ function setSyncStatus(msg) {
   if ($('driveSyncStatus')) $('driveSyncStatus').textContent = msg;
 }
 
-async function loadFromDrive(showAlert = false) {
+async function loadFromDrive(showAlert = false, silentLoginSync = false) {
   if (!APPS_SCRIPT_URL) return;
   try {
-    setSyncStatus("Drive থেকে লোড হচ্ছে...");
+    if (!silentLoginSync) setSyncStatus("Drive থেকে লোড হচ্ছে...");
     const res = await fetch(APPS_SCRIPT_URL);
     const result = await res.json();
     if (result && result.ok && result.data) {
       const d = result.data;
       data = {
+        creds: {
+          user:  { ...defaultCredentials.user, ...(d.creds?.user || data.creds?.user || {}) },
+          admin: { ...defaultCredentials.admin, ...(d.creds?.admin || data.creds?.admin || {}) }
+        },
         methods: Array.isArray(d.methods) && d.methods.length ? d.methods : [...defaultData.methods],
         categories: Array.isArray(d.categories) && d.categories.length ? d.categories : [...defaultData.categories],
         products: Array.isArray(d.products) && d.products.length ? d.products : [...defaultData.products],
@@ -462,16 +492,20 @@ async function loadFromDrive(showAlert = false) {
         transfers: Array.isArray(d.transfers) ? d.transfers : []
       };
       localStorage.setItem(KEY, JSON.stringify(data));
-      render();
-      setSyncStatus("Drive থেকে আপডেট হয়েছে");
+      if (!currentRole) {
+        setSelectedRole($('selectedRole').value || 'user');
+      } else {
+        render();
+      }
+      if (!silentLoginSync) setSyncStatus("Drive থেকে আপডেট হয়েছে");
       if (showAlert) alert("Google Drive থেকে সর্বশেষ ডাটা লোড হয়েছে!");
     } else {
-      setSyncStatus("Drive সিঙ্ক প্রস্তুত");
+      if (!silentLoginSync) setSyncStatus("Drive সিঙ্ক প্রস্তুত");
       if (showAlert) alert("Google Drive-এ এখনো কোনো ব্যাকআপ ফাইল পাওয়া যায়নি।");
     }
   } catch (e) {
-    setSyncStatus("Drive সংযোগে সমস্যা");
-    if (showAlert) alert("Google Drive থেকে ডাটা আনা যায়নি। ইন্টারনেট বা Apps Script ডিপ্লয় চেক করুন।");
+    if (!silentLoginSync) setSyncStatus("Drive সংযোগে সমস্যা");
+    if (showAlert) alert("Google Drive থেকে ডাটা আনা যায়নি।");
   }
 }
 
@@ -502,7 +536,8 @@ function setSelectedRole(role) {
   $('selectedRole').value = targetRole;
   $('roleUserBtn').classList.toggle('active', targetRole === 'user');
   $('roleAdminBtn').classList.toggle('active', targetRole === 'admin');
-  $('loginId').value = CREDENTIALS[targetRole].id;
+  const creds = data.creds || defaultCredentials;
+  $('loginId').value = creds[targetRole] ? creds[targetRole].id : targetRole;
   $('loginPass').value = '';
   $('authMessage').textContent = '';
 }
@@ -515,9 +550,12 @@ function enterApp(role) {
   $('appMain').classList.remove('hidden');
   $('userBar').classList.remove('hidden');
   $('signedInAs').textContent = isAdmin ? 'অ্যাডমিন মোড (সব অনুমতি)' : 'ইউজার মোড (যোগ ও এডিট)';
+  $('passRoleHint').textContent = isAdmin
+    ? 'আপনি বর্তমানে অ্যাডমিন অ্যাকাউন্টে আছেন—অ্যাডমিনের পিন পরিবর্তন করলে Drive-এ সেভ হবে।'
+    : 'আপনি বর্তমানে ইউজার অ্যাকাউন্টে আছেন—ইউজারের পিন পরিবর্তন করলে Drive-এ সেভ হবে।';
   $('clearData').classList.toggle('hidden', !isAdmin);
   render();
-  loadFromDrive(false);
+  loadFromDrive(false, false);
 }
 
 function logout() {
@@ -528,6 +566,7 @@ function logout() {
   $('userBar').classList.add('hidden');
   $('authGate').classList.remove('hidden');
   setSelectedRole('user');
+  loadFromDrive(false, true);
 }
 
 function fillSelect(id, items, allLabel) {
@@ -701,6 +740,35 @@ $('addProduct').addEventListener('click', () => { const v = $('newProduct').valu
 $('addCategory').addEventListener('click', () => { const v = $('newCategory').value.trim(); if (v && !data.categories.includes(v)) { data.categories.push(v); save(); $('newCategory').value = ''; $('listStatus').textContent = 'নতুন বিভাগ যোগ হয়েছে: ' + v; } else $('listStatus').textContent = 'নাম লিখুন অথবা আগে থেকেই আছে কিনা দেখুন'; });
 $('addMethod').addEventListener('click', () => { const v = $('newMethod').value.trim(); if (v && !data.methods.includes(v)) { data.methods.push(v); save(); $('newMethod').value = ''; $('listStatus').textContent = 'নতুন মাধ্যম যোগ হয়েছে: ' + v; } else $('listStatus').textContent = 'নাম লিখুন অথবা আগে থেকেই আছে কিনা দেখুন'; });
 
+$('changePassForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const cPass = $('currPass').value.trim();
+  const nPass = $('newPass').value.trim();
+  if (!nPass) return;
+
+  const targetRole = currentRole || 'user';
+  const activeCred = data.creds?.[targetRole] || defaultCredentials[targetRole];
+
+  if (cPass !== activeCred.pass) {
+    $('passMsg').style.color = '#a42c1d';
+    $('passMsg').textContent = 'বর্তমান পিনটি সঠিক নয়!';
+    return;
+  }
+
+  data.creds = {
+    user:  { ...defaultCredentials.user, ...(data.creds?.user || {}) },
+    admin: { ...defaultCredentials.admin, ...(data.creds?.admin || {}) }
+  };
+  data.creds[targetRole] = { ...activeCred, pass: nPass };
+  save();
+
+  $('currPass').value = '';
+  $('newPass').value = '';
+  $('passMsg').style.color = '#17365d';
+  $('passMsg').textContent = 'পিন সফলভাবে পরিবর্তন হয়েছে এবং Google Drive-এ সেভ হয়েছে!';
+  alert('আপনার পিন সফলভাবে আপডেট করা হয়েছে!');
+});
+
 $('runReport').addEventListener('click', () => {
   const f = $('reportFrom').value, t = $('reportTo').value;
   const filter = x => (!f || x.date >= f) && (!t || x.date <= t);
@@ -710,7 +778,7 @@ $('runReport').addEventListener('click', () => {
   $('reportResult').innerHTML = `<div class="cards"><div class="card blue"><small>জমা</small><strong>${money(inc)}</strong></div><div class="card red"><small>খরচ</small><strong>${money(exp)}</strong></div><div class="card gold"><small>চার্জ</small><strong>${money(fee)}</strong></div><div class="card green"><small>নিট</small><strong>${money(inc - exp - fee)}</strong></div></div>`;
 });
 
-$('drivePullBtn').addEventListener('click', () => loadFromDrive(true));
+$('drivePullBtn').addEventListener('click', () => loadFromDrive(true, false));
 $('drivePushBtn').addEventListener('click', () => saveToDrive(true));
 
 $('exportBtn').addEventListener('click', () => {
@@ -728,7 +796,14 @@ $('importFile').addEventListener('change', async e => {
   try {
     const x = JSON.parse(await file.text());
     if (!Array.isArray(x.incomes) || !Array.isArray(x.expenses) || !Array.isArray(x.transfers)) throw Error();
-    data = { ...defaultData, ...x };
+    data = {
+      ...defaultData,
+      ...x,
+      creds: {
+        user:  { ...defaultCredentials.user, ...(x.creds?.user || data.creds?.user || {}) },
+        admin: { ...defaultCredentials.admin, ...(x.creds?.admin || data.creds?.admin || {}) }
+      }
+    };
     save();
     alert('ব্যাকআপ ফেরত আনা হয়েছে');
   } catch (err) { alert('এই ব্যাকআপ ফাইলটি সঠিক নয়'); }
@@ -737,7 +812,18 @@ $('importFile').addEventListener('change', async e => {
 $('clearData').addEventListener('click', () => {
   if (!isAdmin) { alert('শুধু অ্যাডমিন সব হিসাব মুছতে পারবেন।'); return; }
   if (confirm('সতর্কতা: সব জমা, খরচ ও উত্তোলনের হিসাব মুছে যাবে। আগে ব্যাকআপ নিয়েছেন?')) {
-    data = { methods: [...defaultData.methods], categories: [...defaultData.categories], products: [...defaultData.products], incomes: [], expenses: [], transfers: [] };
+    data = {
+      creds: {
+        user:  { ...defaultCredentials.user, ...(data.creds?.user || {}) },
+        admin: { ...defaultCredentials.admin, ...(data.creds?.admin || {}) }
+      },
+      methods: [...defaultData.methods],
+      categories: [...defaultData.categories],
+      products: [...defaultData.products],
+      incomes: [],
+      expenses: [],
+      transfers: []
+    };
     save();
     alert('সব হিসাব মুছে ফেলা হয়েছে');
   }
@@ -746,17 +832,23 @@ $('clearData').addEventListener('click', () => {
 $('roleUserBtn').addEventListener('click', () => setSelectedRole('user'));
 $('roleAdminBtn').addEventListener('click', () => setSelectedRole('admin'));
 
-$('loginForm').addEventListener('submit', e => {
+$('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
+  if (!currentRole && APPS_SCRIPT_URL) {
+    await loadFromDrive(false, true);
+  }
   const idInput = $('loginId').value.trim().toLowerCase();
   const passInput = $('loginPass').value.trim();
 
-  if (idInput === CREDENTIALS.admin.id && passInput === CREDENTIALS.admin.pass) {
+  const adminCred = data.creds?.admin || defaultCredentials.admin;
+  const userCred = data.creds?.user || defaultCredentials.user;
+
+  if (idInput === adminCred.id.toLowerCase() && passInput === adminCred.pass) {
     enterApp('admin');
-  } else if (idInput === CREDENTIALS.user.id && passInput === CREDENTIALS.user.pass) {
+  } else if (idInput === userCred.id.toLowerCase() && passInput === userCred.pass) {
     enterApp('user');
   } else {
-    $('authMessage').textContent = 'ভুল আইডি বা পিন দিয়েছেন। User: user / 1234, Admin: admin / 9999';
+    $('authMessage').textContent = 'ভুল আইডি বা পিন দিয়েছেন!';
   }
 });
 
@@ -765,10 +857,11 @@ $('logoutBtn').addEventListener('click', logout);
 initDates();
 let savedRole = null;
 try { savedRole = sessionStorage.getItem(SESSION_KEY); } catch (err) {}
-if (savedRole && CREDENTIALS[savedRole]) {
+if (savedRole && (savedRole === 'admin' || savedRole === 'user')) {
   enterApp(savedRole);
 } else {
   setSelectedRole('user');
+  loadFromDrive(false, true);
 }
 </script>
 </body>
