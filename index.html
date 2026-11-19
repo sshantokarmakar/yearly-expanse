@@ -359,8 +359,8 @@ const defaultCredentials = {
   admin: { id: 'wp_shanto',       pass: '9999', label: 'অ্যাডমিন' }
 };
 
-const SESSION_KEY = 'familyLedgerSession_v9';
-const KEY = 'familyLedgerBn_v9';
+const SESSION_KEY = 'familyLedgerSession_v11';
+const KEY = 'familyLedgerBn_v11';
 
 const defaultData = {
   creds: {
@@ -428,8 +428,8 @@ try {
   const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
   data = {
     creds: {
-      user:  { ...defaultCredentials.user, ...(saved.creds?.user || {}) },
-      admin: { ...defaultCredentials.admin, ...(saved.creds?.admin || {}) }
+      user:  { ...defaultCredentials.user },
+      admin: { ...defaultCredentials.admin }
     },
     methods: Array.isArray(saved.methods) && saved.methods.length ? saved.methods : [...defaultData.methods],
     categories: Array.isArray(saved.categories) && saved.categories.length ? saved.categories : [...defaultData.categories],
@@ -471,18 +471,18 @@ function setSyncStatus(msg) {
   if ($('driveSyncStatus')) $('driveSyncStatus').textContent = msg;
 }
 
-async function loadFromDrive(showAlert = false, silentLoginSync = false) {
+async function loadFromDrive(showAlert = false) {
   if (!APPS_SCRIPT_URL) return;
   try {
-    if (!silentLoginSync) setSyncStatus("Drive থেকে লোড হচ্ছে...");
+    setSyncStatus("Drive থেকে লোড হচ্ছে...");
     const res = await fetch(APPS_SCRIPT_URL);
     const result = await res.json();
     if (result && result.ok && result.data) {
       const d = result.data;
       data = {
         creds: {
-          user:  { ...defaultCredentials.user, ...(d.creds?.user || data.creds?.user || {}) },
-          admin: { ...defaultCredentials.admin, ...(d.creds?.admin || data.creds?.admin || {}) }
+          user:  { ...defaultCredentials.user },
+          admin: { ...defaultCredentials.admin }
         },
         methods: Array.isArray(d.methods) && d.methods.length ? d.methods : [...defaultData.methods],
         categories: Array.isArray(d.categories) && d.categories.length ? d.categories : [...defaultData.categories],
@@ -492,19 +492,15 @@ async function loadFromDrive(showAlert = false, silentLoginSync = false) {
         transfers: Array.isArray(d.transfers) ? d.transfers : []
       };
       localStorage.setItem(KEY, JSON.stringify(data));
-      if (!currentRole) {
-        setSelectedRole($('selectedRole').value || 'user');
-      } else {
-        render();
-      }
-      if (!silentLoginSync) setSyncStatus("Drive থেকে আপডেট হয়েছে");
+      render();
+      setSyncStatus("Drive থেকে আপডেট হয়েছে");
       if (showAlert) alert("Google Drive থেকে সর্বশেষ ডাটা লোড হয়েছে!");
     } else {
-      if (!silentLoginSync) setSyncStatus("Drive সিঙ্ক প্রস্তুত");
+      setSyncStatus("Drive সিঙ্ক প্রস্তুত");
       if (showAlert) alert("Google Drive-এ এখনো কোনো ব্যাকআপ ফাইল পাওয়া যায়নি।");
     }
   } catch (e) {
-    if (!silentLoginSync) setSyncStatus("Drive সংযোগে সমস্যা");
+    setSyncStatus("Drive সংযোগে সমস্যা");
     if (showAlert) alert("Google Drive থেকে ডাটা আনা যায়নি।");
   }
 }
@@ -536,8 +532,7 @@ function setSelectedRole(role) {
   $('selectedRole').value = targetRole;
   $('roleUserBtn').classList.toggle('active', targetRole === 'user');
   $('roleAdminBtn').classList.toggle('active', targetRole === 'admin');
-  const creds = data.creds || defaultCredentials;
-  $('loginId').value = creds[targetRole] ? creds[targetRole].id : targetRole;
+  $('loginId').value = defaultCredentials[targetRole].id;
   $('loginPass').value = '';
   $('authMessage').textContent = '';
 }
@@ -555,7 +550,7 @@ function enterApp(role) {
     : 'আপনি বর্তমানে ইউজার অ্যাকাউন্টে আছেন—ইউজারের পিন পরিবর্তন করলে Drive-এ সেভ হবে।';
   $('clearData').classList.toggle('hidden', !isAdmin);
   render();
-  loadFromDrive(false, false);
+  loadFromDrive(false);
 }
 
 function logout() {
@@ -566,7 +561,6 @@ function logout() {
   $('userBar').classList.add('hidden');
   $('authGate').classList.remove('hidden');
   setSelectedRole('user');
-  loadFromDrive(false, true);
 }
 
 function fillSelect(id, items, allLabel) {
@@ -747,7 +741,7 @@ $('changePassForm').addEventListener('submit', e => {
   if (!nPass) return;
 
   const targetRole = currentRole || 'user';
-  const activeCred = data.creds?.[targetRole] || defaultCredentials[targetRole];
+  const activeCred = defaultCredentials[targetRole];
 
   if (cPass !== activeCred.pass) {
     $('passMsg').style.color = '#a42c1d';
@@ -755,11 +749,8 @@ $('changePassForm').addEventListener('submit', e => {
     return;
   }
 
-  data.creds = {
-    user:  { ...defaultCredentials.user, ...(data.creds?.user || {}) },
-    admin: { ...defaultCredentials.admin, ...(data.creds?.admin || {}) }
-  };
-  data.creds[targetRole] = { ...activeCred, pass: nPass };
+  defaultCredentials[targetRole] = { ...activeCred, pass: nPass };
+  data.creds[targetRole] = { ...defaultCredentials[targetRole] };
   save();
 
   $('currPass').value = '';
@@ -778,7 +769,7 @@ $('runReport').addEventListener('click', () => {
   $('reportResult').innerHTML = `<div class="cards"><div class="card blue"><small>জমা</small><strong>${money(inc)}</strong></div><div class="card red"><small>খরচ</small><strong>${money(exp)}</strong></div><div class="card gold"><small>চার্জ</small><strong>${money(fee)}</strong></div><div class="card green"><small>নিট</small><strong>${money(inc - exp - fee)}</strong></div></div>`;
 });
 
-$('drivePullBtn').addEventListener('click', () => loadFromDrive(true, false));
+$('drivePullBtn').addEventListener('click', () => loadFromDrive(true));
 $('drivePushBtn').addEventListener('click', () => saveToDrive(true));
 
 $('exportBtn').addEventListener('click', () => {
@@ -800,8 +791,8 @@ $('importFile').addEventListener('change', async e => {
       ...defaultData,
       ...x,
       creds: {
-        user:  { ...defaultCredentials.user, ...(x.creds?.user || data.creds?.user || {}) },
-        admin: { ...defaultCredentials.admin, ...(x.creds?.admin || data.creds?.admin || {}) }
+        user:  { ...defaultCredentials.user },
+        admin: { ...defaultCredentials.admin }
       }
     };
     save();
@@ -814,8 +805,8 @@ $('clearData').addEventListener('click', () => {
   if (confirm('সতর্কতা: সব জমা, খরচ ও উত্তোলনের হিসাব মুছে যাবে। আগে ব্যাকআপ নিয়েছেন?')) {
     data = {
       creds: {
-        user:  { ...defaultCredentials.user, ...(data.creds?.user || {}) },
-        admin: { ...defaultCredentials.admin, ...(data.creds?.admin || {}) }
+        user:  { ...defaultCredentials.user },
+        admin: { ...defaultCredentials.admin }
       },
       methods: [...defaultData.methods],
       categories: [...defaultData.categories],
@@ -832,20 +823,14 @@ $('clearData').addEventListener('click', () => {
 $('roleUserBtn').addEventListener('click', () => setSelectedRole('user'));
 $('roleAdminBtn').addEventListener('click', () => setSelectedRole('admin'));
 
-$('loginForm').addEventListener('submit', async e => {
+$('loginForm').addEventListener('submit', e => {
   e.preventDefault();
-  if (!currentRole && APPS_SCRIPT_URL) {
-    await loadFromDrive(false, true);
-  }
   const idInput = $('loginId').value.trim().toLowerCase();
   const passInput = $('loginPass').value.trim();
 
-  const adminCred = data.creds?.admin || defaultCredentials.admin;
-  const userCred = data.creds?.user || defaultCredentials.user;
-
-  if (idInput === adminCred.id.toLowerCase() && passInput === adminCred.pass) {
+  if (idInput === defaultCredentials.admin.id.toLowerCase() && passInput === defaultCredentials.admin.pass) {
     enterApp('admin');
-  } else if (idInput === userCred.id.toLowerCase() && passInput === userCred.pass) {
+  } else if (idInput === defaultCredentials.user.id.toLowerCase() && passInput === defaultCredentials.user.pass) {
     enterApp('user');
   } else {
     $('authMessage').textContent = 'ভুল আইডি বা পিন দিয়েছেন!';
@@ -861,7 +846,6 @@ if (savedRole && (savedRole === 'admin' || savedRole === 'user')) {
   enterApp(savedRole);
 } else {
   setSelectedRole('user');
-  loadFromDrive(false, true);
 }
 </script>
 </body>
